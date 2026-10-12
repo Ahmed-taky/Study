@@ -1,0 +1,277 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>تحدي المذاكرة</title>
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;800&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#0f1115;--card:#181b22;--card2:#20242d;--tx:#e8eaf0;--mu:#8a90a0;--ac:#5b8cff;--gold:#f5c04a;--ok:#4cc38a;--bad:#ff6b6b;--r:14px}
+*{box-sizing:border-box;margin:0}
+body{background:var(--bg);color:var(--tx);font-family:Cairo,system-ui,sans-serif;line-height:1.6;padding-bottom:40px}
+a{color:inherit;text-decoration:none}
+.wrap{max-width:720px;margin:0 auto;padding:0 16px}
+header{padding:18px 0 8px;display:flex;align-items:center;justify-content:space-between}
+header h1{font-size:20px;font-weight:800}
+.back{color:var(--mu);font-size:14px}
+.card{background:var(--card);border-radius:var(--r);padding:14px 16px;margin:12px 0}
+.prog .top{display:flex;justify-content:space-between;font-size:14px;color:var(--mu);margin-bottom:8px}
+.prog .top b{color:var(--tx);font-size:16px}
+.bar{height:10px;background:var(--card2);border-radius:99px;overflow:hidden}
+.bar>i{display:block;height:100%;background:linear-gradient(90deg,var(--ac),var(--ok));border-radius:99px;transition:width .6s}
+.seg{display:flex;background:var(--card2);border-radius:12px;padding:3px;gap:3px;margin:10px 0}
+.seg button{flex:1;border:0;background:none;color:var(--mu);font:inherit;font-size:14px;padding:8px 4px;border-radius:10px;cursor:pointer}
+.seg button.on{background:var(--ac);color:#fff;font-weight:600}
+.nav{display:flex;align-items:center;justify-content:space-between;margin:6px 0 4px}
+.nav button{border:0;background:var(--card);color:var(--tx);width:40px;height:40px;border-radius:12px;font-size:18px;cursor:pointer}
+.nav button:disabled{opacity:.3;cursor:default}
+.nav span{font-size:15px;font-weight:600}
+.row{position:relative;display:flex;align-items:center;gap:12px;background:var(--card);border-radius:var(--r);padding:12px 14px;margin:8px 0;overflow:hidden}
+.row::before{content:"";position:absolute;inset:0 auto 0 0;width:var(--w,0%);background:rgba(91,140,255,.12)}
+.row>*{position:relative}
+.rk{width:32px;text-align:center;font-weight:800;font-size:18px;color:var(--mu)}
+.nm{flex:1;font-weight:600}
+.nm small{display:block;color:var(--mu);font-weight:400;font-size:12px}
+.pt{font-size:20px;font-weight:800}
+.pt small{font-size:12px;color:var(--mu);font-weight:400}
+.tag{display:inline-block;font-size:11px;background:var(--card2);color:var(--gold);border-radius:99px;padding:1px 8px;margin-inline-start:6px;font-weight:600}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:12px 0}
+.stat{background:var(--card);border-radius:var(--r);padding:12px;text-align:center}
+.stat b{display:block;font-size:22px;font-weight:800}
+.stat span{font-size:12px;color:var(--mu)}
+.day .h{display:flex;justify-content:space-between;align-items:baseline}
+.day .h b{font-size:20px}
+.day .m{display:flex;flex-wrap:wrap;gap:6px 14px;color:var(--mu);font-size:13px;margin-top:4px}
+.mk{display:flex;gap:6px;font-size:16px;margin-top:6px}
+.mk .off{opacity:.2;filter:grayscale(1)}
+.note{margin-top:8px;font-size:13px;background:var(--card2);border-radius:10px;padding:6px 10px;color:var(--gold)}
+.rep{margin-top:8px;border:0;background:none;color:var(--mu);font:inherit;font-size:12px;cursor:pointer;text-decoration:underline;padding:0}
+.empty,.err{text-align:center;color:var(--mu);padding:30px 0}
+.err{color:var(--bad)}
+#modal{position:fixed;inset:0;background:rgba(0,0,0,.6);display:none;align-items:flex-end;justify-content:center;z-index:9}
+#modal.show{display:flex}
+.sheet{background:var(--card);width:100%;max-width:720px;border-radius:20px 20px 0 0;padding:20px 16px 28px}
+.sheet h3{margin-bottom:12px}
+.sheet select,.sheet textarea{width:100%;background:var(--card2);color:var(--tx);border:1px solid #2c3140;border-radius:12px;padding:10px;font:inherit;margin-bottom:10px}
+.sheet textarea{min-height:90px;resize:vertical}
+.btns{display:flex;gap:8px}
+.btns button{flex:1;border:0;border-radius:12px;padding:12px;font:inherit;font-weight:600;cursor:pointer}
+.go{background:var(--ac);color:#fff}.no{background:var(--card2);color:var(--tx)}
+#toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--ok);color:#06210f;padding:10px 18px;border-radius:99px;font-weight:600;display:none;z-index:10}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header><h1>📚 تحدي المذاكرة</h1><a id="back" class="back" href="#/" style="display:none">← الترتيب</a></header>
+  <div id="prog" class="card prog"></div>
+  <main id="app"></main>
+</div>
+<div id="modal"></div>
+<div id="toast"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+const SUPABASE_URL = 'https://bekqulmpmtwqxtqewfmq.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJla3F1bG1wbXR3cXh0cWV3Zm1xIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTE0MTUzODcsImV4cCI6MjEwNjk5MTM4N30.Ic3pGhPygwkzPBZGwgPJilXBEAje-JT1egVk5t4oYYw';
+const db = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+const START = '2026-10-04', END = '2026-10-31';
+const S = { latest: null, members: new Map(), teams: new Map(), scope: 'day', kind: 'team', anchor: null, tok: 0 };
+
+/* ---------- helpers ---------- */
+const D = s => new Date(s + 'T00:00:00Z');
+const iso = d => d.toISOString().slice(0, 10);
+const add = (s, n) => { const d = D(s); d.setUTCDate(d.getUTCDate() + n); return iso(d); };
+const diff = (a, b) => Math.round((D(a) - D(b)) / 864e5);
+const weekStart = s => add(s, -D(s).getUTCDay());
+const fmt = (s, o) => D(s).toLocaleDateString('ar-EG', { timeZone: 'UTC', ...o });
+const esc = t => String(t ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const hm = m => `${Math.floor(m / 60)}:${String(m % 60).padStart(2, '0')}`;
+const medal = r => ({ 1: '🥇', 2: '🥈', 3: '🥉' }[r] || r);
+const $ = id => document.getElementById(id);
+const app = $('app');
+
+function toast(msg) { const t = $('toast'); t.textContent = msg; t.style.display = 'block'; setTimeout(() => t.style.display = 'none', 2500); }
+
+/* ---------- progress ---------- */
+function renderProgress() {
+  const total = diff(END, START) + 1;
+  const passed = Math.max(0, Math.min(total, diff(S.latest, START) + 1));
+  $('prog').innerHTML = `
+    <div class="top"><span>مر <b>${passed}</b> من ${total} يوم</span><span>آخر يوم منشور: ${fmt(S.latest, { weekday: 'long', day: 'numeric', month: 'long' })}</span></div>
+    <div class="bar"><i style="width:${(passed / total * 100).toFixed(1)}%"></i></div>`;
+}
+
+/* ---------- home ---------- */
+function range() {
+  if (S.scope === 'day') return [S.anchor, S.anchor];
+  if (S.scope === 'week') { const f = weekStart(S.anchor); return [f, add(f, 6)]; }
+  return [START, END];
+}
+
+async function home() {
+  $('back').style.display = 'none';
+  const [f, t] = range();
+  const step = S.scope === 'day' ? 1 : 7;
+  const canPrev = S.scope === 'day' ? S.anchor > START : weekStart(S.anchor) > START;
+  const canNext = S.scope === 'day' ? S.anchor < S.latest : add(weekStart(S.anchor), 7) <= S.latest;
+  const label = S.scope === 'day' ? fmt(S.anchor, { weekday: 'long', day: 'numeric', month: 'long' })
+    : S.scope === 'week' ? `من ${fmt(f, { day: 'numeric', month: 'long' })} إلى ${fmt(t, { day: 'numeric', month: 'long' })}`
+    : 'من أول التحدي لحد دلوقتي';
+
+  app.innerHTML = `
+    <div class="seg" id="sc">
+      <button data-v="day" class="${S.scope === 'day' ? 'on' : ''}">اليوم</button>
+      <button data-v="week" class="${S.scope === 'week' ? 'on' : ''}">الأسبوع</button>
+      <button data-v="all" class="${S.scope === 'all' ? 'on' : ''}">الإجمالي</button>
+    </div>
+    <div class="seg" id="kd">
+      <button data-v="team" class="${S.kind === 'team' ? 'on' : ''}">الفرق</button>
+      <button data-v="ind" class="${S.kind === 'ind' ? 'on' : ''}">الأفراد</button>
+    </div>
+    ${S.scope === 'all' ? '' : `<div class="nav"><button id="nx" ${canNext ? '' : 'disabled'}>›</button><span>${label}</span><button id="pv" ${canPrev ? '' : 'disabled'}>‹</button></div>`}
+    <div id="list"><div class="empty">جاري التحميل…</div></div>`;
+
+  $('sc').onclick = e => { const v = e.target.dataset.v; if (v) { S.scope = v; home(); } };
+  $('kd').onclick = e => { const v = e.target.dataset.v; if (v) { S.kind = v; home(); } };
+  const move = n => { let a = add(S.anchor, n * step); if (a > S.latest) a = S.latest; if (a < START) a = START; S.anchor = a; home(); };
+  if ($('pv')) { $('pv').onclick = () => move(-1); $('nx').onclick = () => move(1); }
+
+  const tok = ++S.tok;
+  const fn = S.kind === 'team' ? 'leaderboard_teams' : 'leaderboard_members';
+  const { data, error } = await db.rpc(fn, { d_from: f, d_to: t });
+  if (tok !== S.tok) return;
+  if (error) { $('list').innerHTML = `<div class="err">تعذر تحميل الترتيب</div>`; return; }
+  if (!data.length) { $('list').innerHTML = `<div class="empty">مفيش بيانات للفترة دي</div>`; return; }
+
+  const max = Math.max(...data.map(r => Number(r.points)), 1);
+  $('list').innerHTML = data.map(r => {
+    const w = (Number(r.points) / max * 100).toFixed(0);
+    if (S.kind === 'team') return `
+      <a class="row" style="--w:${w}%" href="#/teams/${r.team_id}">
+        <span class="rk">${medal(r.rank)}</span>
+        <span class="nm">${esc(r.emoji || '')} ${esc(r.label)}<small>${r.member_count} أعضاء</small></span>
+        <span class="pt">${r.points}<small> نقطة</small></span></a>`;
+    return `
+      <a class="row" style="--w:${w}%" href="#/members/${r.member_id}">
+        <span class="rk">${medal(r.rank)}</span>
+        <span class="nm">${esc(r.label)}${r.is_solo ? '<span class="tag">منفرد</span>' : ''}</span>
+        <span class="pt">${r.points}<small> نقطة</small></span></a>`;
+  }).join('');
+}
+
+/* ---------- team page ---------- */
+async function teamPage(id) {
+  $('back').style.display = 'block';
+  const team = S.teams.get(id);
+  app.innerHTML = `<div class="empty">جاري التحميل…</div>`;
+  const { data, error } = await db.from('public_entries').select('member_id,total').eq('team_id', id);
+  if (error || !team) { app.innerHTML = `<div class="err">تعذر تحميل الفريق</div>`; return; }
+  const by = new Map();
+  data.forEach(e => by.set(e.member_id, (by.get(e.member_id) || 0) + e.total));
+  const total = [...by.values()].reduce((a, b) => a + b, 0);
+  const rows = [...by.entries()].sort((a, b) => b[1] - a[1]);
+  app.innerHTML = `
+    <div class="card" style="text-align:center">
+      <div style="font-size:22px;font-weight:800">${esc(team.emoji || '')} ${esc(team.name)}</div>
+      <div class="pt" style="margin-top:4px">${total}<small> نقطة</small></div>
+    </div>
+    ${rows.map(([mid, p]) => `
+      <a class="row" style="--w:${total ? (p / total * 100).toFixed(0) : 0}%" href="#/members/${mid}">
+        <span class="nm">${esc(S.members.get(mid) || '؟')}<small>${total ? (p / total * 100).toFixed(1) : 0}% من نقاط الفريق</small></span>
+        <span class="pt">${p}<small> نقطة</small></span></a>`).join('')}`;
+}
+
+/* ---------- member page ---------- */
+async function memberPage(id) {
+  $('back').style.display = 'block';
+  const name = S.members.get(id);
+  app.innerHTML = `<div class="empty">جاري التحميل…</div>`;
+  const { data, error } = await db.from('public_entries').select('*').eq('member_id', id).order('day', { ascending: false });
+  if (error || !name) { app.innerHTML = `<div class="err">تعذر تحميل العضو</div>`; return; }
+  const total = data.reduce((a, e) => a + e.total, 0);
+  const mins = data.reduce((a, e) => a + e.study_minutes, 0);
+  const last = data[0];
+  const team = last && last.team_id ? S.teams.get(last.team_id) : null;
+  app.innerHTML = `
+    <div class="card" style="text-align:center">
+      <div style="font-size:22px;font-weight:800">${esc(name)}</div>
+      <div style="color:var(--mu)">${team ? `<a href="#/teams/${last.team_id}">${esc(team.emoji || '')} ${esc(team.name)}</a>` : 'عضو منفرد'}</div>
+    </div>
+    <div class="stats">
+      <div class="stat"><b>${total}</b><span>إجمالي النقاط</span></div>
+      <div class="stat"><b>${hm(mins)}</b><span>ساعات المذاكرة</span></div>
+      <div class="stat"><b>${data.length}</b><span>أيام مسجلة</span></div>
+    </div>
+    ${data.map(e => `
+      <div class="card day">
+        <div class="h"><span>${fmt(e.day, { weekday: 'long', day: 'numeric', month: 'long' })}</span><b>${e.total} نقطة</b></div>
+        <div class="m"><span>⏱ ${hm(e.study_minutes)}</span><span>مذاكرة: ${e.study_points}</span><span>علامات: ${e.total - e.study_points}</span></div>
+        <div class="mk"><span class="${e.wake ? '' : 'off'}">☀️</span><span class="${e.adhkar ? '' : 'off'}">🏞️</span><span class="${e.todo ? '' : 'off'}">📘</span></div>
+        ${e.note ? `<div class="note">${esc(e.note)}</div>` : ''}
+        <button class="rep" data-day="${e.day}">إبلاغ عن مشكلة</button>
+      </div>`).join('') || '<div class="empty">مفيش أيام مسجلة</div>'}`;
+  app.onclick = ev => { const b = ev.target.closest('.rep'); if (b) openReport(id, b.dataset.day); };
+}
+
+/* ---------- report ---------- */
+function openReport(memberId, day) {
+  const m = $('modal');
+  m.innerHTML = `
+    <div class="sheet">
+      <h3>إبلاغ عن مشكلة — ${fmt(day, { day: 'numeric', month: 'long' })}</h3>
+      <select id="rk">
+        <option value="missing_points">نقاط ناقصة</option>
+        <option value="wrong_calc">حساب غلط</option>
+        <option value="wrong_mark">علامة غلط (☀️/🏞️/📘)</option>
+        <option value="other">أخرى</option>
+      </select>
+      <textarea id="rm" maxlength="500" placeholder="اكتب المشكلة (٣ حروف على الأقل)"></textarea>
+      <div class="btns"><button class="no" id="rc">إلغاء</button><button class="go" id="rs">إرسال</button></div>
+    </div>`;
+  m.classList.add('show');
+  $('rc').onclick = () => m.classList.remove('show');
+  m.onclick = e => { if (e.target === m) m.classList.remove('show'); };
+  $('rs').onclick = async () => {
+    const message = $('rm').value.trim();
+    if (message.length < 3) return toast('اكتب رسالة أطول شوية');
+    $('rs').disabled = true;
+    const { error } = await db.from('reports').insert({ member_id: memberId, day, kind: $('rk').value, message });
+    $('rs').disabled = false;
+    if (error) return toast('تعذر الإرسال، حاول تاني');
+    m.classList.remove('show');
+    toast('تم إرسال البلاغ ✓');
+  };
+}
+
+/* ---------- router + init ---------- */
+function route() {
+  const p = location.hash.replace(/^#/, '').split('/').filter(Boolean);
+  window.scrollTo(0, 0);
+  if (p[0] === 'teams' && p[1]) return teamPage(p[1]);
+  if (p[0] === 'members' && p[1]) return memberPage(p[1]);
+  return home();
+}
+window.addEventListener('hashchange', route);
+
+(async function init() {
+  try {
+    const [ld, m, t] = await Promise.all([
+      db.from('latest_day').select('day').single(),
+      db.from('members').select('id,name'),
+      db.from('teams').select('id,name,emoji')
+    ]);
+    if (ld.error || m.error || t.error || !ld.data.day) throw 0;
+    S.latest = ld.data.day;
+    S.anchor = S.latest;
+    m.data.forEach(x => S.members.set(x.id, x.name));
+    t.data.forEach(x => S.teams.set(x.id, x));
+    renderProgress();
+    route();
+  } catch (e) {
+    app.innerHTML = '<div class="err">تعذر الاتصال بالبيانات</div>';
+  }
+})();
+</script>
+</body>
+</html>
